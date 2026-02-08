@@ -4,6 +4,8 @@ import { useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useGlobeMessages } from "@/presentation/hooks/useGlobeMessages";
 import { clusterMessages } from "@/presentation/utils/clusterMessages";
+import { useAuth } from "@/presentation/components/auth/AuthProvider";
+import AuthModal from "@/presentation/components/auth/AuthModal";
 import Minimap from "@/presentation/components/ui/Minimap";
 import RandomJump from "@/presentation/components/ui/RandomJump";
 import MessageInput from "@/presentation/components/ui/MessageInput";
@@ -21,9 +23,11 @@ const Globe = dynamic(() => import("./Globe"), { ssr: false });
  */
 export default function GlobeClient() {
   const { messages, messageCards, isLoading, refetch } = useGlobeMessages();
+  const { isAnonymous, signOut, isLoading: authLoading } = useAuth();
   const [cameraDirection, setCameraDirection] = useState({ lat: 0, lng: 0 });
   const [cameraTarget, setCameraTarget] = useState<CameraTarget | null>(null);
   const [visibleCardIds, setVisibleCardIds] = useState<string[]>([]);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // 메시지 → 클러스터 변환 (messages가 바뀔 때만 재계산)
   const clusters = useMemo(
@@ -64,6 +68,33 @@ export default function GlobeClient() {
 
   return (
     <>
+      {/* 우상단 프로필/로그인 버튼 */}
+      <div className="fixed top-4 right-4 z-30">
+        {!authLoading && (
+          isAnonymous ? (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="rounded-lg border border-white/15 bg-globe-surface/80 px-3 py-1.5 text-xs text-foreground/60 backdrop-blur-md transition-colors hover:text-foreground hover:border-white/25"
+            >
+              로그인
+            </button>
+          ) : (
+            <button
+              onClick={signOut}
+              className="rounded-lg border border-white/15 bg-globe-surface/80 px-3 py-1.5 text-xs text-foreground/60 backdrop-blur-md transition-colors hover:text-foreground hover:border-white/25"
+            >
+              로그아웃
+            </button>
+          )
+        )}
+      </div>
+
+      {/* 인증 모달 */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
+
       <Globe
         messages={messages}
         messageCards={messageCards}

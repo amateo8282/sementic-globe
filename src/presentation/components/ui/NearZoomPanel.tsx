@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useAuth } from "@/presentation/components/auth/AuthProvider";
 import type { MessageCardData } from "@/presentation/components/globe/MessageCard";
 
 interface NearZoomPanelProps {
@@ -29,6 +30,7 @@ function MessageCardItem({
   card: MessageCardData;
   onReactionSuccess?: () => void;
 }) {
+  const { session } = useAuth();
   // 로컬 공감 수 (낙관적 업데이트용)
   const [localReactionCount, setLocalReactionCount] = useState(card.reactionCount);
   const [isReacting, setIsReacting] = useState(false);
@@ -43,8 +45,15 @@ function MessageCardItem({
     setReacted(true);
 
     try {
+      const headers: Record<string, string> = {};
+      // 세션 토큰을 Authorization 헤더에 포함
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+
       const res = await fetch(`/api/messages/${card.id}/react`, {
         method: "POST",
+        headers,
       });
       if (!res.ok) {
         // 실패 시 롤백
@@ -60,7 +69,7 @@ function MessageCardItem({
     } finally {
       setIsReacting(false);
     }
-  }, [card.id, isReacting, onReactionSuccess]);
+  }, [card.id, isReacting, session, onReactionSuccess]);
 
   return (
     <div className="rounded-lg border border-white/10 bg-[rgba(20,20,35,0.85)] backdrop-blur-md p-3 transition-opacity duration-300">

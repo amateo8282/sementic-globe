@@ -8,6 +8,7 @@ import {
   getClientIp,
   rateLimitExceeded,
 } from "@/infrastructure/security/rateLimit";
+import { extractUserId } from "@/infrastructure/security/authUtils";
 
 /** 좌표 값이 유효한 범위인지 검증 */
 function isValidCoordinate(
@@ -76,8 +77,18 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/messages
  * 새 메시지 생성 (content -> embed -> place -> save)
+ * 인증 필수 (Authorization: Bearer <token>)
  */
 export async function POST(request: NextRequest) {
+  // 인증 검증
+  const userId = await extractUserId(request);
+  if (!userId) {
+    return NextResponse.json(
+      { error: "인증이 필요합니다" },
+      { status: 401 }
+    );
+  }
+
   // Rate Limiting
   const ip = getClientIp(request);
   const { allowed } = messageCreateLimiter.check(ip);
@@ -112,7 +123,7 @@ export async function POST(request: NextRequest) {
       placementService
     );
 
-    const result = await createMessage.execute({ content });
+    const result = await createMessage.execute({ content, userId });
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error("[POST /api/messages] 메시지 생성 오류:", error);

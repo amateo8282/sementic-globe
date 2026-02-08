@@ -15,6 +15,7 @@ describe("GetMessages 유스케이스", () => {
       findByCoordinateRange: vi.fn(),
       findAll: vi.fn(),
       addReaction: vi.fn(),
+      findReactionByUserAndMessage: vi.fn(),
       update: vi.fn(),
     };
 
@@ -30,6 +31,7 @@ describe("GetMessages 유스케이스", () => {
       epochId: null,
       reactionCount: 3,
       createdAt: new Date("2025-01-01"),
+      userId: null,
     });
 
     vi.mocked(messageRepository.findByCoordinateRange).mockResolvedValue([
@@ -64,6 +66,7 @@ describe("GetMessages 유스케이스", () => {
         epochId: null,
         reactionCount: 0,
         createdAt: new Date("2025-01-01"),
+        userId: null,
       }),
       Message.create({
         id: "msg-2",
@@ -73,6 +76,7 @@ describe("GetMessages 유스케이스", () => {
         epochId: null,
         reactionCount: 1,
         createdAt: new Date("2025-01-02"),
+        userId: null,
       }),
     ];
 

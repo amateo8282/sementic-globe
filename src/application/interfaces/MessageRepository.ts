@@ -26,6 +26,12 @@ export interface MessageRepository {
   /** 메시지에 반응 추가 */
   addReaction(reaction: Reaction): Promise<Reaction>;
 
+  /** 사용자의 특정 메시지 반응 조회 (중복 방지용) */
+  findReactionByUserAndMessage(
+    userId: string,
+    messageId: string
+  ): Promise<Reaction | null>;
+
   /** 메시지 업데이트 (반응 수 등) */
   update(message: Message): Promise<Message>;
 }

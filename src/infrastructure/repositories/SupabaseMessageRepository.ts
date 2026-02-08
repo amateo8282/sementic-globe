@@ -4,7 +4,7 @@ import { Reaction } from "@/domain/entities/Reaction";
 import { Embedding } from "@/domain/value-objects/Embedding";
 import { GlobeCoordinate } from "@/domain/value-objects/GlobeCoordinate";
 import type { MessageRepository } from "@/application/interfaces/MessageRepository";
-import type { MessagesRow } from "../supabase/types";
+import type { MessagesRow, ReactionsRow } from "../supabase/types";
 
 /**
  * Supabase를 사용한 MessageRepository 구현
@@ -27,6 +27,7 @@ export class SupabaseMessageRepository implements MessageRepository {
         lng: message.globeCoordinate?.lng ?? null,
         epoch_id: message.epochId,
         reaction_count: message.reactionCount,
+        user_id: message.userId,
       })
       .select()
       .single();
@@ -92,6 +93,7 @@ export class SupabaseMessageRepository implements MessageRepository {
     const { error: insertError } = await this.client.from("reactions").insert({
       id: reaction.id,
       message_id: reaction.messageId,
+      user_id: reaction.userId,
     });
 
     if (insertError) {
@@ -122,6 +124,32 @@ export class SupabaseMessageRepository implements MessageRepository {
     }
 
     return reaction;
+  }
+
+  async findReactionByUserAndMessage(
+    userId: string,
+    messageId: string
+  ): Promise<Reaction | null> {
+    const { data, error } = await this.client
+      .from("reactions")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("message_id", messageId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`반응 조회 실패: ${error.message}`);
+    }
+
+    if (!data) return null;
+
+    const row = data as ReactionsRow;
+    return Reaction.create({
+      id: row.id,
+      messageId: row.message_id,
+      userId: row.user_id,
+      createdAt: new Date(row.created_at),
+    });
   }
 
   async update(message: Message): Promise<Message> {
@@ -161,6 +189,7 @@ export class SupabaseMessageRepository implements MessageRepository {
       epochId: row.epoch_id,
       reactionCount: row.reaction_count,
       createdAt: new Date(row.created_at),
+      userId: row.user_id,
     });
   }
 

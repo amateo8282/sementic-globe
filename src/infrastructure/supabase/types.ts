@@ -63,6 +63,7 @@ export interface MessagesRow {
   epoch_id: string | null;
   reaction_count: number;
   created_at: string;
+  user_id: string | null;
 }
 
 /** messages 테이블 삽입 타입 */
@@ -75,6 +76,7 @@ export interface MessagesInsert {
   epoch_id?: string | null;
   reaction_count?: number;
   created_at?: string;
+  user_id?: string | null;
 }
 
 /** messages 테이블 업데이트 타입 */
@@ -87,12 +89,14 @@ export interface MessagesUpdate {
   epoch_id?: string | null;
   reaction_count?: number;
   created_at?: string;
+  user_id?: string | null;
 }
 
 /** reactions 테이블 행 타입 */
 export interface ReactionsRow {
   id: string;
   message_id: string;
+  user_id: string;
   created_at: string;
 }
 
@@ -100,6 +104,7 @@ export interface ReactionsRow {
 export interface ReactionsInsert {
   id?: string;
   message_id: string;
+  user_id: string;
   created_at?: string;
 }
 
@@ -107,6 +112,7 @@ export interface ReactionsInsert {
 export interface ReactionsUpdate {
   id?: string;
   message_id?: string;
+  user_id?: string;
   created_at?: string;
 }
 

@@ -26,6 +26,7 @@ export class CreateMessage {
       epochId: null,
       reactionCount: 0,
       createdAt: new Date(),
+      userId: dto.userId,
     });
 
     // 2. 텍스트를 임베딩 벡터로 변환

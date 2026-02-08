@@ -6,10 +6,12 @@ describe("Reaction", () => {
     const reaction = Reaction.create({
       id: "react-1",
       messageId: "msg-1",
+      userId: "user-1",
       createdAt: new Date("2024-01-01"),
     });
     expect(reaction.id).toBe("react-1");
     expect(reaction.messageId).toBe("msg-1");
+    expect(reaction.userId).toBe("user-1");
   });
 
   it("빈 ID로 생성하면 에러를 던진다", () => {
@@ -17,6 +19,7 @@ describe("Reaction", () => {
       Reaction.create({
         id: "",
         messageId: "msg-1",
+        userId: "user-1",
         createdAt: new Date(),
       })
     ).toThrow("반응 ID는 비어있을 수 없습니다");
@@ -27,8 +30,20 @@ describe("Reaction", () => {
       Reaction.create({
         id: "react-1",
         messageId: "",
+        userId: "user-1",
         createdAt: new Date(),
       })
     ).toThrow("메시지 ID는 비어있을 수 없습니다");
+  });
+
+  it("빈 사용자 ID로 생성하면 에러를 던진다", () => {
+    expect(() =>
+      Reaction.create({
+        id: "react-1",
+        messageId: "msg-1",
+        userId: "",
+        createdAt: new Date(),
+      })
+    ).toThrow("사용자 ID는 비어있을 수 없습니다");
   });
 });

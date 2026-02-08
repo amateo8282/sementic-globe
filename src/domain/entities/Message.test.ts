@@ -12,6 +12,7 @@ function createValidProps() {
     epochId: null,
     reactionCount: 0,
     createdAt: new Date("2024-01-01"),
+    userId: null,
   };
 }
 
@@ -88,5 +89,18 @@ describe("Message", () => {
     const msg = Message.create(createValidProps());
     const reacted = msg.withReaction().withReaction().withReaction();
     expect(reacted.reactionCount).toBe(3);
+  });
+
+  it("userId를 포함하여 생성할 수 있다", () => {
+    const msg = Message.create({
+      ...createValidProps(),
+      userId: "user-123",
+    });
+    expect(msg.userId).toBe("user-123");
+  });
+
+  it("userId 없이 생성하면 null이다", () => {
+    const msg = Message.create(createValidProps());
+    expect(msg.userId).toBeNull();
   });
 });

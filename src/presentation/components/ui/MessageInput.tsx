@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { motion, useAnimation } from "motion/react";
+import { useAuth } from "@/presentation/components/auth/AuthProvider";
 
 const MAX_LENGTH = 280;
 
@@ -12,8 +13,10 @@ interface MessageInputProps {
 /**
  * 메시지 입력 폼 컴포넌트
  * 화면 하단 중앙에 고정, 280자 제한, 제출 시 API 호출
+ * 인증 토큰을 Authorization 헤더에 포함하여 전송한다
  */
 export default function MessageInput({ onSubmitSuccess }: MessageInputProps) {
+  const { session } = useAuth();
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,9 +52,17 @@ export default function MessageInput({ onSubmitSuccess }: MessageInputProps) {
       setIsSubmitting(true);
 
       try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        // 세션 토큰을 Authorization 헤더에 포함
+        if (session?.access_token) {
+          headers["Authorization"] = `Bearer ${session.access_token}`;
+        }
+
         const res = await fetch("/api/messages", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ content: trimmed }),
         });
 
@@ -73,7 +84,7 @@ export default function MessageInput({ onSubmitSuccess }: MessageInputProps) {
         setIsSubmitting(false);
       }
     },
-    [isEmpty, isSubmitting, trimmed, onSubmitSuccess, pulseForm, shakeForm],
+    [isEmpty, isSubmitting, trimmed, session, onSubmitSuccess, pulseForm, shakeForm],
   );
 
   return (

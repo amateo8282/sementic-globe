@@ -9,11 +9,13 @@ export interface MessageProps {
   epochId: string | null;
   reactionCount: number;
   createdAt: Date;
+  userId: string | null;
 }
 
 /**
  * 익명 메시지 엔티티
  * 사용자가 남기는 짧은 텍스트 메시지로, 의미 기반으로 구체 위에 배치된다
+ * userId는 작성자 식별용 (익명성 유지, 클라이언트에 노출 안 함)
  */
 export class Message {
   readonly id: string;
@@ -23,6 +25,7 @@ export class Message {
   readonly epochId: string | null;
   readonly reactionCount: number;
   readonly createdAt: Date;
+  readonly userId: string | null;
 
   private constructor(props: MessageProps) {
     this.id = props.id;
@@ -32,6 +35,7 @@ export class Message {
     this.epochId = props.epochId;
     this.reactionCount = props.reactionCount;
     this.createdAt = props.createdAt;
+    this.userId = props.userId;
   }
 
   static create(props: MessageProps): Message {
@@ -74,6 +78,7 @@ export class Message {
       epochId: this.epochId,
       reactionCount: this.reactionCount,
       createdAt: this.createdAt,
+      userId: this.userId,
     };
   }
 }

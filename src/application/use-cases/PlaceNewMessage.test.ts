@@ -21,6 +21,7 @@ describe("PlaceNewMessage 유스케이스", () => {
       findByCoordinateRange: vi.fn(),
       findAll: vi.fn(),
       addReaction: vi.fn(),
+      findReactionByUserAndMessage: vi.fn(),
       update: vi.fn(),
     };
 
@@ -43,6 +44,7 @@ describe("PlaceNewMessage 유스케이스", () => {
       epochId: null,
       reactionCount: 0,
       createdAt: new Date(),
+      userId: null,
     });
 
     vi.mocked(messageRepository.findById).mockResolvedValue(message);
@@ -76,6 +78,7 @@ describe("PlaceNewMessage 유스케이스", () => {
       epochId: null,
       reactionCount: 0,
       createdAt: new Date(),
+      userId: null,
     });
 
     vi.mocked(messageRepository.findById).mockResolvedValue(message);
@@ -97,6 +100,7 @@ describe("PlaceNewMessage 유스케이스", () => {
       epochId: null,
       reactionCount: 0,
       createdAt: new Date(),
+      userId: null,
     });
 
     const existingWithBoth = Message.create({
@@ -107,6 +111,7 @@ describe("PlaceNewMessage 유스케이스", () => {
       epochId: null,
       reactionCount: 0,
       createdAt: new Date(),
+      userId: null,
     });
 
     // 임베딩은 있지만 좌표가 없는 메시지 (참조하지 않아야 함)
@@ -118,6 +123,7 @@ describe("PlaceNewMessage 유스케이스", () => {
       epochId: null,
       reactionCount: 0,
       createdAt: new Date(),
+      userId: null,
     });
 
     vi.mocked(messageRepository.findById).mockResolvedValue(targetMessage);
