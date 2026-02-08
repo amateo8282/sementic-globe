@@ -32,8 +32,10 @@ export async function GET(
       createdAt: message.createdAt.toISOString(),
     });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "메시지 조회 중 오류 발생";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    console.error("[GET /api/messages/[id]] 메시지 조회 오류:", error);
+    return NextResponse.json(
+      { error: "메시지 조회 중 오류가 발생했습니다" },
+      { status: 500 }
+    );
   }
 }
