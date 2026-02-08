@@ -73,7 +73,7 @@ export default function GlobeClient() {
         cameraTarget={cameraTarget}
       />
       {/* near 줌: 2D 오버레이 패널로 메시지 카드 표시 */}
-      <NearZoomPanel cards={visibleCards} />
+      <NearZoomPanel cards={visibleCards} onReactionSuccess={refetch} />
       <Minimap points={minimapPoints} cameraDirection={cameraDirection} />
       <RandomJump onJump={handleRandomJump} />
       <MessageInput onSubmitSuccess={refetch} />
