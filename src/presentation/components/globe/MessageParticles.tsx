@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useMemo } from "react";
-import { Object3D, Color } from "three";
+import { useRef, useMemo, useEffect } from "react";
+import { Object3D, Color, InstancedBufferAttribute } from "three";
 import type { InstancedMesh as InstancedMeshType } from "three";
 import { useFrame } from "@react-three/fiber";
 import { GLOBE_RADIUS, CLUSTER_COLORS } from "@/presentation/constants/globe";
@@ -41,27 +41,32 @@ function toCartesian(
 export default function MessageParticles({ messages }: MessageParticlesProps) {
   const meshRef = useRef<InstancedMeshType>(null);
   const tempObject = useMemo(() => new Object3D(), []);
+  const tempColor = useMemo(() => new Color(), []);
 
-  // 파티클 색상 배열 생성
-  const colors = useMemo(() => {
+  // 인스턴스별 색상 설정 (messages가 바뀔 때만)
+  useEffect(() => {
+    if (!meshRef.current || messages.length === 0) return;
+
+    const mesh = meshRef.current;
+    // instanceColor 버퍼 생성
     const colorArray = new Float32Array(messages.length * 3);
     messages.forEach((msg, i) => {
       const colorHex =
         CLUSTER_COLORS[msg.clusterIndex ?? i % CLUSTER_COLORS.length];
-      const color = new Color(colorHex);
-      colorArray[i * 3] = color.r;
-      colorArray[i * 3 + 1] = color.g;
-      colorArray[i * 3 + 2] = color.b;
+      tempColor.set(colorHex);
+      colorArray[i * 3] = tempColor.r;
+      colorArray[i * 3 + 1] = tempColor.g;
+      colorArray[i * 3 + 2] = tempColor.b;
     });
-    return colorArray;
-  }, [messages]);
+    mesh.instanceColor = new InstancedBufferAttribute(colorArray, 3);
+    mesh.instanceColor.needsUpdate = true;
+  }, [messages, tempColor]);
 
-  // 파티클 위치를 매 프레임 업데이트
-  useFrame(() => {
-    if (!meshRef.current) return;
+  // 파티클 위치 설정 (최초 1회 + messages 변경 시)
+  useEffect(() => {
+    if (!meshRef.current || messages.length === 0) return;
 
     messages.forEach((msg, i) => {
-      // 구체 표면에서 약간 위로 띄움 (radius + 0.05)
       const [x, y, z] = toCartesian(msg.lat, msg.lng, GLOBE_RADIUS + 0.05);
       tempObject.position.set(x, y, z);
       tempObject.updateMatrix();
@@ -69,6 +74,12 @@ export default function MessageParticles({ messages }: MessageParticlesProps) {
     });
 
     meshRef.current.instanceMatrix.needsUpdate = true;
+  }, [messages, tempObject]);
+
+  // 매 프레임 업데이트는 필요 없으므로 제거 (정적 파티클)
+  // 애니메이션 추가 시 여기에 useFrame 사용
+  useFrame(() => {
+    // 향후 파티클 애니메이션용 (빛나는 효과 등)
   });
 
   if (messages.length === 0) return null;
@@ -76,14 +87,7 @@ export default function MessageParticles({ messages }: MessageParticlesProps) {
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, messages.length]}>
       <sphereGeometry args={[0.04, 8, 8]} />
-      <meshBasicMaterial toneMapped={false}>
-        {/* 인스턴스별 색상 적용 */}
-      </meshBasicMaterial>
-      {/* 인스턴스별 색상을 위한 버퍼 속성 */}
-      <instancedBufferAttribute
-        attach="geometry-attributes-color"
-        args={[colors, 3]}
-      />
+      <meshBasicMaterial toneMapped={false} />
     </instancedMesh>
   );
 }
