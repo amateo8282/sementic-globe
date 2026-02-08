@@ -5,7 +5,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { MathUtils, Vector3 } from "three";
 import CameraControls from "./CameraControls";
 import MessageParticles, { type ParticleMessage } from "./MessageParticles";
-import MessageCard, { type MessageCardData } from "./MessageCard";
+import type { MessageCardData } from "./MessageCard";
 import ClusterLabel, { type ClusterData } from "./ClusterLabel";
 import { useZoomLevel } from "@/presentation/hooks/useZoomLevel";
 import {
@@ -26,14 +26,16 @@ export interface CameraTarget {
 interface GlobeProps {
   /** 구체 위에 표시할 메시지 목록 */
   messages?: ParticleMessage[];
-  /** near 줌에서 표시할 메시지 카드 데이터 */
+  /** near 줌 시야 필터링용 메시지 카드 데이터 */
   messageCards?: MessageCardData[];
-  /** mid 줌에서 표시할 군집 라벨 데이터 */
+  /** mid 줌에서 표시할 클러스터 라벨 데이터 */
   clusters?: ClusterData[];
   /** 줌 레벨 변경 콜백 */
   onZoomLevelChange?: (level: ZoomLevel) => void;
   /** 카메라 방향 변경 콜백 (미니맵용) */
   onCameraDirectionChange?: (lat: number, lng: number) => void;
+  /** near 줌 시 시야 범위 내 카드 ID 변경 콜백 */
+  onVisibleCardsChange?: (ids: string[]) => void;
   /** 카메라 이동 대상 좌표 (RandomJump 등에서 사용) */
   cameraTarget?: CameraTarget | null;
 }
@@ -138,7 +140,7 @@ function latLngToUnitVec(lat: number, lng: number, out: Vector3): Vector3 {
 /**
  * 줌 레벨별 콘텐츠 렌더링 컴포넌트
  * spring/lerp로 opacity 전환 애니메이션 구현
- * near 줌에서는 카메라 시야 범위 내 카드만 렌더링하여 성능 최적화
+ * near 줌에서는 카메라 시야 범위 내 카드 ID를 콜백으로 전달 (2D 오버레이에서 렌더링)
  */
 function ZoomContent({
   messages,
@@ -146,27 +148,27 @@ function ZoomContent({
   clusters,
   onZoomLevelChange,
   onCameraDirectionChange,
+  onVisibleCardsChange,
 }: {
   messages: ParticleMessage[];
   messageCards: MessageCardData[];
   clusters: ClusterData[];
   onZoomLevelChange?: (level: ZoomLevel) => void;
   onCameraDirectionChange?: (lat: number, lng: number) => void;
+  onVisibleCardsChange?: (ids: string[]) => void;
 }) {
   // 각 레이어의 현재 opacity (lerp로 부드럽게 전환)
   const particleOpacityRef = useRef(1);
   const clusterOpacityRef = useRef(0);
-  const cardOpacityRef = useRef(0);
 
   // opacity 상태 (렌더링 트리거용)
   const [particleVisible, setParticleVisible] = useState(true);
   const [clusterVisible, setClusterVisible] = useState(false);
-  const [cardVisible, setCardVisible] = useState(false);
 
-  // 카메라 시야 기반 필터링된 카드 (near 줌 성능 최적화)
-  const [visibleCardIds, setVisibleCardIds] = useState<Set<string>>(new Set());
+  // 시야 필터링용 임시 벡터
   const tempVec = useMemo(() => new Vector3(), []);
   const frameCounter = useRef(0);
+  const prevVisibleIdsRef = useRef<string>("");
 
   const handleZoomChange = useCallback(
     (level: ZoomLevel) => {
@@ -185,7 +187,6 @@ function ZoomContent({
     // 목표 opacity 설정
     const targetParticle = level === "near" ? 0 : 1;
     const targetCluster = level === "mid" ? 1 : 0;
-    const targetCard = level === "near" ? 1 : 0;
 
     // lerp 보간
     particleOpacityRef.current = MathUtils.lerp(
@@ -198,38 +199,40 @@ function ZoomContent({
       targetCluster,
       lerpSpeed
     );
-    cardOpacityRef.current = MathUtils.lerp(
-      cardOpacityRef.current,
-      targetCard,
-      lerpSpeed
-    );
 
     // visibility 임계값 (0.01 이상이면 렌더링)
     const threshold = 0.01;
     setParticleVisible(particleOpacityRef.current > threshold);
     setClusterVisible(clusterOpacityRef.current > threshold);
-    setCardVisible(cardOpacityRef.current > threshold);
 
-    // 카메라 방향 계산 (구체 중심 방향의 반대 = 카메라가 바라보는 구체 표면 지점)
+    // 카메라 방향 계산
     const camDir = camera.position.clone().normalize().negate();
 
-    // near 줌일 때 6프레임마다 시야 범위 내 카드 필터링 (매 프레임은 과도)
+    // near 줌일 때 6프레임마다 시야 범위 내 카드 ID를 콜백으로 전달
     frameCounter.current++;
-    if (level === "near" && frameCounter.current % 6 === 0) {
-      const scored: Array<{ id: string; angle: number }> = [];
-      for (const card of messageCards) {
-        latLngToUnitVec(card.lat, card.lng, tempVec);
-        const angle = Math.acos(MathUtils.clamp(camDir.dot(tempVec), -1, 1));
-        if (angle < VIEW_ANGLE_THRESHOLD) {
-          scored.push({ id: card.id, angle });
+    if (onVisibleCardsChange && frameCounter.current % 6 === 0) {
+      if (level === "near") {
+        const scored: Array<{ id: string; angle: number }> = [];
+        for (const card of messageCards) {
+          latLngToUnitVec(card.lat, card.lng, tempVec);
+          const angle = Math.acos(MathUtils.clamp(camDir.dot(tempVec), -1, 1));
+          if (angle < VIEW_ANGLE_THRESHOLD) {
+            scored.push({ id: card.id, angle });
+          }
         }
+        scored.sort((a, b) => a.angle - b.angle);
+        const newIds = scored.slice(0, MAX_VISIBLE_CARDS).map((s) => s.id);
+        // 변경된 경우에만 콜백 호출 (불필요한 리렌더 방지)
+        const key = newIds.join(",");
+        if (key !== prevVisibleIdsRef.current) {
+          prevVisibleIdsRef.current = key;
+          onVisibleCardsChange(newIds);
+        }
+      } else if (prevVisibleIdsRef.current !== "") {
+        // near 줌이 아닐 때 빈 배열 전달 (한 번만)
+        prevVisibleIdsRef.current = "";
+        onVisibleCardsChange([]);
       }
-      // 가까운 순 정렬 후 최대 개수 제한
-      scored.sort((a, b) => a.angle - b.angle);
-      const newIds = new Set(
-        scored.slice(0, MAX_VISIBLE_CARDS).map((s) => s.id)
-      );
-      setVisibleCardIds(newIds);
     }
 
     // 카메라 방향을 구면 좌표로 변환하여 미니맵에 전달
@@ -254,14 +257,6 @@ function ZoomContent({
             visible={clusterVisible}
           />
         ))}
-
-      {/* near: 카메라 시야 범위 내 메시지 카드만 표시 */}
-      {cardVisible &&
-        messageCards
-          .filter((msg) => visibleCardIds.has(msg.id))
-          .map((msg) => (
-            <MessageCard key={msg.id} message={msg} visible={cardVisible} />
-          ))}
     </>
   );
 }
@@ -277,6 +272,7 @@ export default function Globe({
   clusters = [],
   onZoomLevelChange,
   onCameraDirectionChange,
+  onVisibleCardsChange,
   cameraTarget = null,
 }: GlobeProps) {
   return (
@@ -294,6 +290,7 @@ export default function Globe({
           clusters={clusters}
           onZoomLevelChange={onZoomLevelChange}
           onCameraDirectionChange={onCameraDirectionChange}
+          onVisibleCardsChange={onVisibleCardsChange}
         />
         <CameraAnimator target={cameraTarget} />
         <CameraControls />
