@@ -31,7 +31,7 @@ export default function NearZoomPanel({ cards }: NearZoomPanelProps) {
       style={{ bottom: "140px" }}
     >
       <div className="h-full flex items-center justify-center px-4">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-[720px] max-h-[calc(100vh-200px)] overflow-y-auto pointer-events-auto scrollbar-hide">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-[720px] max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-hide">
           {cards.map((card) => (
             <div
               key={card.id}
