@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { MathUtils } from "three";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { MathUtils, Vector3 } from "three";
 import CameraControls from "./CameraControls";
 import MessageParticles, { type ParticleMessage } from "./MessageParticles";
 import MessageCard, { type MessageCardData } from "./MessageCard";
@@ -17,6 +17,12 @@ import {
   type ZoomLevel,
 } from "@/presentation/constants/globe";
 
+/** 카메라 이동 대상 좌표 */
+export interface CameraTarget {
+  lat: number;
+  lng: number;
+}
+
 interface GlobeProps {
   /** 구체 위에 표시할 메시지 목록 */
   messages?: ParticleMessage[];
@@ -28,6 +34,8 @@ interface GlobeProps {
   onZoomLevelChange?: (level: ZoomLevel) => void;
   /** 카메라 방향 변경 콜백 (미니맵용) */
   onCameraDirectionChange?: (lat: number, lng: number) => void;
+  /** 카메라 이동 대상 좌표 (RandomJump 등에서 사용) */
+  cameraTarget?: CameraTarget | null;
 }
 
 /** 반투명 구체 메시 + 와이어프레임 오버레이 */
@@ -56,6 +64,47 @@ function GlobeSphere() {
       </mesh>
     </group>
   );
+}
+
+/**
+ * 카메라를 목표 좌표로 부드럽게 이동시키는 컴포넌트
+ * 구면 좌표(lat, lng)를 3D 위치로 변환하여 현재 거리 유지하며 이동
+ */
+function CameraAnimator({ target }: { target: CameraTarget | null }) {
+  const { camera } = useThree();
+  const targetVec = useRef(new Vector3());
+  const isAnimating = useRef(false);
+
+  useFrame(() => {
+    if (!target || !isAnimating.current) return;
+
+    const latRad = (target.lat * Math.PI) / 180;
+    const lngRad = (target.lng * Math.PI) / 180;
+    const currentDist = camera.position.length();
+
+    // 목표 좌표를 카메라 위치로 변환 (구체 바깥에서 바라보는 방향)
+    targetVec.current.set(
+      currentDist * Math.cos(latRad) * Math.cos(lngRad),
+      currentDist * Math.sin(latRad),
+      currentDist * Math.cos(latRad) * Math.sin(lngRad)
+    );
+
+    camera.position.lerp(targetVec.current, 0.04);
+    camera.lookAt(0, 0, 0);
+
+    // 목표에 충분히 가까우면 애니메이션 종료
+    const dist = camera.position.distanceTo(targetVec.current);
+    if (dist < 0.05) {
+      isAnimating.current = false;
+    }
+  });
+
+  // target이 바뀔 때 애니메이션 시작
+  if (target) {
+    isAnimating.current = true;
+  }
+
+  return null;
 }
 
 /** 장면 조명 설정 */
@@ -182,6 +231,7 @@ export default function Globe({
   clusters = [],
   onZoomLevelChange,
   onCameraDirectionChange,
+  cameraTarget = null,
 }: GlobeProps) {
   return (
     <div className="w-full h-full">
@@ -199,6 +249,7 @@ export default function Globe({
           onZoomLevelChange={onZoomLevelChange}
           onCameraDirectionChange={onCameraDirectionChange}
         />
+        <CameraAnimator target={cameraTarget} />
         <CameraControls />
       </Canvas>
     </div>
