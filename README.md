@@ -12,6 +12,7 @@
 | 애니메이션 | Motion (구 Framer Motion) | 최신 |
 | 3D 렌더링 | Three.js + React Three Fiber + @react-three/drei | 최신 |
 | Backend/DB | Supabase (PostgreSQL + pgvector) | supabase-js v2 |
+| 인증 | Supabase Auth (익명 + 이메일) | supabase-js v2 |
 | 임베딩 | OpenAI text-embedding-3-small (1536차원) | - |
 | 테스트 | Vitest | 최신 |
 | 배포 | Vercel (Frontend) + Supabase (Backend) | - |
@@ -31,27 +32,40 @@ src/
 │   ├── supabase/              # Supabase 클라이언트, 타입 정의
 │   ├── repositories/          # SupabaseMessageRepository
 │   ├── services/              # OpenAIEmbeddingService, CosineSimilarityPlacementService
+│   ├── security/              # Rate Limiting, JWT 인증 유틸리티
 │   └── di/                    # 의존성 주입 컨테이너
 └── presentation/              # UI 계층
     ├── components/
     │   ├── globe/             # Globe, MessageParticles, CameraControls, MessageCard, ClusterLabel
-    │   └── ui/                # Minimap, RandomJump
+    │   ├── ui/                # Minimap, RandomJump, MessageInput, NearZoomPanel
+    │   └── auth/              # AuthProvider, AuthModal
     ├── hooks/                 # useZoomLevel, useGlobeMessages
+    ├── utils/                 # clusterMessages, messageInputHelpers
     └── constants/             # globe.ts (상수)
 
 app/                           # Next.js App Router
-├── layout.tsx
+├── layout.tsx                 # AuthProvider 래핑
 ├── page.tsx
 └── api/
     ├── embed/route.ts         # 임베딩 변환 API
     └── messages/
-        ├── route.ts           # 메시지 CRUD
+        ├── route.ts           # 메시지 CRUD (POST 인증 필수)
         └── [id]/
             ├── route.ts       # 개별 메시지 조회
-            └── react/route.ts # 반응 추가
+            └── react/route.ts # 반응 추가 (인증 필수)
 
 supabase/migrations/           # DB 마이그레이션
 ```
+
+## 인증 시스템
+
+익명성을 유지하면서 사용자 식별이 가능한 구조:
+
+- **자동 익명 로그인**: 첫 방문 시 `signInAnonymously()`로 자동 user_id 부여
+- **선택적 이메일 가입**: AuthModal에서 이메일/비밀번호로 계정 등록 가능
+- **중복 반응 방지**: 동일 사용자가 같은 메시지에 중복 공감 불가 (DB UNIQUE 제약)
+- **게시물 익명성**: 작성자 정보는 클라이언트에 노출하지 않음
+- **API 인증**: POST 요청에 `Authorization: Bearer <token>` 헤더 필수
 
 ## 시작하기
 
@@ -93,13 +107,13 @@ pnpm build
 
 ## API 엔드포인트
 
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| GET | /api/messages | 메시지 목록 조회 (좌표 범위 필터 옵션) |
-| POST | /api/messages | 새 메시지 생성 (content -> embed -> place -> save) |
-| GET | /api/messages/[id] | 특정 메시지 조회 |
-| POST | /api/messages/[id]/react | 메시지에 반응 추가 |
-| POST | /api/embed | 텍스트를 임베딩 벡터로 변환 |
+| 메서드 | 경로 | 인증 | 설명 |
+|--------|------|------|------|
+| GET | /api/messages | 불필요 | 메시지 목록 조회 (좌표 범위 필터 옵션) |
+| POST | /api/messages | 필수 | 새 메시지 생성 (content -> embed -> place -> save) |
+| GET | /api/messages/[id] | 불필요 | 특정 메시지 조회 |
+| POST | /api/messages/[id]/react | 필수 | 메시지에 반응 추가 (중복 시 409) |
+| POST | /api/embed | 불필요 | 텍스트를 임베딩 벡터로 변환 |
 
 ## 디자인 사양
 
