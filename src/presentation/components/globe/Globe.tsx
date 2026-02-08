@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { MathUtils, Vector3 } from "three";
 import CameraControls from "./CameraControls";
@@ -118,9 +118,27 @@ function SceneLighting() {
   );
 }
 
+/** 카메라 시야 방향 기준 최대 표시 카드 수 */
+const MAX_VISIBLE_CARDS = 15;
+
+/** 카메라 시야 내 카드 필터링 각도 (라디안) */
+const VIEW_ANGLE_THRESHOLD = Math.PI / 3; // 60도
+
+/** 구면 좌표 → 단위 벡터 변환 */
+function latLngToUnitVec(lat: number, lng: number, out: Vector3): Vector3 {
+  const latRad = (lat * Math.PI) / 180;
+  const lngRad = (lng * Math.PI) / 180;
+  return out.set(
+    Math.cos(latRad) * Math.cos(lngRad),
+    Math.sin(latRad),
+    Math.cos(latRad) * Math.sin(lngRad)
+  );
+}
+
 /**
  * 줌 레벨별 콘텐츠 렌더링 컴포넌트
  * spring/lerp로 opacity 전환 애니메이션 구현
+ * near 줌에서는 카메라 시야 범위 내 카드만 렌더링하여 성능 최적화
  */
 function ZoomContent({
   messages,
@@ -144,6 +162,11 @@ function ZoomContent({
   const [particleVisible, setParticleVisible] = useState(true);
   const [clusterVisible, setClusterVisible] = useState(false);
   const [cardVisible, setCardVisible] = useState(false);
+
+  // 카메라 시야 기반 필터링된 카드 (near 줌 성능 최적화)
+  const [visibleCardIds, setVisibleCardIds] = useState<Set<string>>(new Set());
+  const tempVec = useMemo(() => new Vector3(), []);
+  const frameCounter = useRef(0);
 
   const handleZoomChange = useCallback(
     (level: ZoomLevel) => {
@@ -187,11 +210,32 @@ function ZoomContent({
     setClusterVisible(clusterOpacityRef.current > threshold);
     setCardVisible(cardOpacityRef.current > threshold);
 
+    // 카메라 방향 계산 (구체 중심 방향의 반대 = 카메라가 바라보는 구체 표면 지점)
+    const camDir = camera.position.clone().normalize().negate();
+
+    // near 줌일 때 6프레임마다 시야 범위 내 카드 필터링 (매 프레임은 과도)
+    frameCounter.current++;
+    if (level === "near" && frameCounter.current % 6 === 0) {
+      const scored: Array<{ id: string; angle: number }> = [];
+      for (const card of messageCards) {
+        latLngToUnitVec(card.lat, card.lng, tempVec);
+        const angle = Math.acos(MathUtils.clamp(camDir.dot(tempVec), -1, 1));
+        if (angle < VIEW_ANGLE_THRESHOLD) {
+          scored.push({ id: card.id, angle });
+        }
+      }
+      // 가까운 순 정렬 후 최대 개수 제한
+      scored.sort((a, b) => a.angle - b.angle);
+      const newIds = new Set(
+        scored.slice(0, MAX_VISIBLE_CARDS).map((s) => s.id)
+      );
+      setVisibleCardIds(newIds);
+    }
+
     // 카메라 방향을 구면 좌표로 변환하여 미니맵에 전달
     if (onCameraDirectionChange) {
-      const dir = camera.position.clone().normalize().negate();
-      const lat = Math.asin(dir.y) * (180 / Math.PI);
-      const lng = Math.atan2(dir.z, dir.x) * (180 / Math.PI);
+      const lat = Math.asin(camDir.y) * (180 / Math.PI);
+      const lng = Math.atan2(camDir.z, camDir.x) * (180 / Math.PI);
       onCameraDirectionChange(lat, lng);
     }
   });
@@ -201,7 +245,7 @@ function ZoomContent({
       {/* far/mid: 파티클 표시 */}
       {particleVisible && <MessageParticles messages={messages} />}
 
-      {/* mid: 군집 라벨 표시 */}
+      {/* mid: 클러스터 라벨 표시 */}
       {clusterVisible &&
         clusters.map((cluster) => (
           <ClusterLabel
@@ -211,11 +255,13 @@ function ZoomContent({
           />
         ))}
 
-      {/* near: 개별 메시지 카드 표시 */}
+      {/* near: 카메라 시야 범위 내 메시지 카드만 표시 */}
       {cardVisible &&
-        messageCards.map((msg) => (
-          <MessageCard key={msg.id} message={msg} visible={cardVisible} />
-        ))}
+        messageCards
+          .filter((msg) => visibleCardIds.has(msg.id))
+          .map((msg) => (
+            <MessageCard key={msg.id} message={msg} visible={cardVisible} />
+          ))}
     </>
   );
 }

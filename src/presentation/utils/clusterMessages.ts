@@ -75,7 +75,7 @@ export function clusterMessages(
 
     clusters.push({
       id: `cluster-${clusterCount}`,
-      name: `군집 ${clusterCount + 1}`,
+      name: `주제 ${clusterCount + 1}`,
       messageCount: group.length,
       lat: latSum / group.length,
       lng: lngSum / group.length,

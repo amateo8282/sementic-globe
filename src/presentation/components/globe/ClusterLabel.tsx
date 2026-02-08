@@ -3,14 +3,14 @@
 import { Html } from "@react-three/drei";
 import { GLOBE_RADIUS, CLUSTER_COLORS } from "@/presentation/constants/globe";
 
-/** 군집 라벨에 표시할 데이터 */
+/** 클러스터 라벨에 표시할 데이터 */
 export interface ClusterData {
   id: string;
   name: string;
   messageCount: number;
-  /** 군집 중심 위도 */
+  /** 클러스터 중심 위도 */
   lat: number;
-  /** 군집 중심 경도 */
+  /** 클러스터 중심 경도 */
   lng: number;
   /** 클러스터 인덱스 (색상 결정용, 0~3) */
   clusterIndex: number;
@@ -37,8 +37,8 @@ function toCartesian(
 }
 
 /**
- * 줌 레벨 mid에서 표시되는 군집 라벨
- * Html 오버레이로 군집 이름과 메시지 개수를 표시
+ * 줌 레벨 mid에서 표시되는 클러스터 라벨
+ * Html 오버레이로 주제 이름과 메시지 개수를 표시
  */
 export default function ClusterLabel({ cluster, visible }: ClusterLabelProps) {
   if (!visible) return null;
@@ -72,9 +72,7 @@ export default function ClusterLabel({ cluster, visible }: ClusterLabelProps) {
             textAlign: "center",
           }}
         >
-          {/* 군집 이름 */}
           <span style={{ color, fontWeight: 600 }}>{cluster.name}</span>
-          {/* 메시지 개수 */}
           <span
             style={{
               marginLeft: "6px",
@@ -82,7 +80,7 @@ export default function ClusterLabel({ cluster, visible }: ClusterLabelProps) {
               fontSize: "10px",
             }}
           >
-            {cluster.messageCount}개
+            {cluster.messageCount}개의 이야기
           </span>
         </div>
       </Html>

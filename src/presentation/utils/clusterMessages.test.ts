@@ -26,7 +26,7 @@ describe("clusterMessages", () => {
     const result = clusterMessages(messages);
     expect(result).toHaveLength(1);
     expect(result[0].messageCount).toBe(3);
-    expect(result[0].name).toBe("군집 1");
+    expect(result[0].name).toBe("주제 1");
     expect(result[0].id).toBe("cluster-0");
   });
 
@@ -43,8 +43,8 @@ describe("clusterMessages", () => {
     ];
     const result = clusterMessages(messages);
     expect(result).toHaveLength(2);
-    expect(result[0].name).toBe("군집 1");
-    expect(result[1].name).toBe("군집 2");
+    expect(result[0].name).toBe("주제 1");
+    expect(result[1].name).toBe("주제 2");
   });
 
   it("클러스터 중심 좌표가 멤버들의 평균과 일치한다", () => {
