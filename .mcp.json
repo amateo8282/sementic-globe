@@ -1,0 +1,39 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
+    },
+    "supabase": {
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp@latest"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"]
+    },
+    "stitch": {
+      "command": "npx",
+      "args": ["@_davideast/stitch-mcp", "proxy"],
+      "env": {
+        "STITCH_PROJECT_ID": "<YOUR_GCP_PROJECT_ID>"
+      }
+    },
+    "gsap-master": {
+      "command": "npx",
+      "args": ["bruzethegreat-gsap-master-mcp-server@latest"]
+    },
+    "spline-design": {
+      "command": "npx",
+      "args": ["-y", "spline-mcp-server"]
+    },
+    "mcp-three": {
+      "command": "npx",
+      "args": ["-y", "@basementstudio/mcp-three"]
+    }
+  }
+}
