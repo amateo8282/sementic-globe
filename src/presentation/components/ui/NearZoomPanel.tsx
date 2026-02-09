@@ -72,24 +72,30 @@ function MessageCardItem({
   }, [card.id, isReacting, session, onReactionSuccess]);
 
   return (
-    <div className="rounded-lg border border-white/10 bg-[rgba(20,20,35,0.85)] backdrop-blur-md p-3 transition-opacity duration-300">
-      <p className="text-foreground text-sm leading-relaxed break-words line-clamp-4">
+    <div
+      className="rounded-xl border backdrop-blur-md p-3.5 transition-all duration-300 hover:border-white/15"
+      style={{
+        background: "rgba(16, 24, 48, 0.8)",
+        borderColor: "rgba(255, 255, 255, 0.08)",
+      }}
+    >
+      <p className="text-foreground/90 text-sm leading-relaxed break-words line-clamp-4">
         {card.content}
       </p>
-      <div className="flex justify-between items-center mt-2">
+      <div className="flex justify-between items-center mt-2.5">
         {/* 공감 버튼 */}
         <button
           onClick={handleReact}
           disabled={isReacting}
-          className={`pointer-events-auto text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+          className={`pointer-events-auto text-[11px] px-2.5 py-1 rounded-full border transition-all duration-200 ${
             reacted
-              ? "border-accent/50 text-accent bg-accent/10"
-              : "border-white/10 text-foreground/40 hover:border-accent/30 hover:text-accent/70"
+              ? "border-accent/40 text-accent bg-accent/10"
+              : "border-white/8 text-foreground/35 hover:border-accent/25 hover:text-accent/60"
           } disabled:opacity-50`}
         >
           공감 {localReactionCount}
         </button>
-        <span className="text-[10px] text-foreground/40">
+        <span className="text-[10px] text-foreground/30">
           {formatRelativeTime(card.createdAt)}
         </span>
       </div>

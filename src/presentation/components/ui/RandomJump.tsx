@@ -22,33 +22,24 @@ export default function RandomJump({ onJump }: RandomJumpProps) {
   return (
     <button
       onClick={handleClick}
+      className="fixed bottom-5 left-5 z-10 cursor-pointer rounded-full border px-5 py-2.5 text-sm font-medium backdrop-blur-xl transition-all duration-200 select-none hover:border-white/20"
       style={{
-        position: "fixed",
-        bottom: "20px",
-        left: "20px",
-        zIndex: 10,
-        background: "rgba(20, 20, 35, 0.75)",
-        backdropFilter: "blur(8px)",
-        border: "1px solid rgba(255, 255, 255, 0.15)",
-        borderRadius: "24px",
-        padding: "10px 20px",
-        color: "#E4E4E7",
-        fontSize: "14px",
-        fontWeight: 500,
-        cursor: "pointer",
-        transition: "background 0.2s ease",
-        userSelect: "none",
+        background: "rgba(16, 24, 48, 0.7)",
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        color: "rgba(232, 236, 244, 0.7)",
       }}
       onMouseEnter={(e) => {
-        (e.target as HTMLElement).style.background =
-          "rgba(30, 30, 50, 0.9)";
+        const el = e.currentTarget;
+        el.style.background = "rgba(20, 30, 60, 0.85)";
+        el.style.color = "rgba(232, 236, 244, 0.95)";
       }}
       onMouseLeave={(e) => {
-        (e.target as HTMLElement).style.background =
-          "rgba(20, 20, 35, 0.75)";
+        const el = e.currentTarget;
+        el.style.background = "rgba(16, 24, 48, 0.7)";
+        el.style.color = "rgba(232, 236, 244, 0.7)";
       }}
     >
-      탐색
+      다른 이야기 둘러보기
     </button>
   );
 }

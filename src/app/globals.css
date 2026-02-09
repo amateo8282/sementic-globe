@@ -1,19 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0A0A0F;
-  --foreground: #E4E4E7;
-  --accent: #6366F1;
-  --globe-surface: #1A1A2E;
-  --globe-wireframe: #2A2A4A;
+  --background: #0B1120;
+  --foreground: #E8ECF4;
+  --accent: #7C8BF5;
+  --accent-warm: #F5A623;
+  --globe-surface: #131B2E;
+  --globe-glow: #3B6EDB;
+  --card-bg: rgba(16, 24, 48, 0.85);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
+  --color-accent-warm: var(--accent-warm);
   --color-globe-surface: var(--globe-surface);
-  --color-globe-wireframe: var(--globe-wireframe);
+  --color-globe-glow: var(--globe-glow);
+  --color-card-bg: var(--card-bg);
 }
 
 body {
