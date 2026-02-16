@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0A0A0F;
+  --foreground: #E4E4E7;
+  --accent: #6366F1;
+  --globe-surface: #1A1A2E;
+  --globe-wireframe: #2A2A4A;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-globe-surface: var(--globe-surface);
+  --color-globe-wireframe: var(--globe-wireframe);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+}

@@ -14,9 +14,22 @@
 
 ## Tech Stack
 
-- Frontend: TypeScript, React, Vite, Tailwind CSS
-- Backend: FastAPI (Python), Clean Architecture
-- Tailwind 버전(v3 vs v4) 수정 전 반드시 확인 -- v4는 @theme 인라인 블록 방식이 다름
+| 계층 | 기술 | 버전 |
+|------|------|------|
+| Frontend | Next.js (App Router), TypeScript | v16 |
+| 스타일링 | Tailwind CSS | v4 (`@tailwindcss/postcss` 방식, `tailwind.config.ts` 불필요) |
+| 애니메이션 | Motion (구 Framer Motion) | 최신 (`motion` 패키지) |
+| 3D 렌더링 | Three.js + React Three Fiber + @react-three/drei | 최신 |
+| Backend/DB | Supabase (PostgreSQL + pgvector) + Edge Functions | supabase-js v2 |
+| 임베딩 | OpenAI text-embedding-3-small (1536차원) | - |
+| 차원 축소 | UMAP (Python 스크립트, 배치 처리) | - |
+| 테스트 | Vitest | 최신 |
+| 배포 | Vercel (Frontend) + Supabase (Backend) | - |
+
+### 버전 관련 주의사항
+- **Tailwind v4**: `tailwind.config.ts` 파일 대신 CSS 내 `@theme` 인라인 블록 방식 사용. PostCSS 설정: `@tailwindcss/postcss` 플러그인
+- **Motion**: `framer-motion`이 아닌 `motion` 패키지로 설치 (리브랜딩)
+- **Next.js + Three.js**: `next.config.ts`에 `transpilePackages: ['three']` 필수
 - 외부 의존성 사용 시 프로젝트 Node 버전과 호환성 확인 후 설치
 - 새 라이브러리 도입 시 context7로 최신 문서 확인
 - 메이저 버전 업그레이드 전 breaking changes 체크

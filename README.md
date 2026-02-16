@@ -1,143 +1,131 @@
-# Claude Code 프로젝트 템플릿
+# Semantic Globe
 
-Claude Code와 함께 사용하기 위한 프로젝트 템플릿입니다.
-TDD 기반 개발과 클린 아키텍처를 적용한 체계적인 개발 워크플로우를 제공합니다.
+사용자가 짧은 익명 메시지를 남기면, 메시지의 의미(semantic meaning)에 따라 3D 구체(globe) 위에 자동 배치되는 서비스.
+기존 게시판의 수동 카테고리 분류 대신, 임베딩 기반으로 의미적 거리가 자동으로 시각화된다.
 
-## 빠른 시작
+## 기술 스택
 
-GitHub에서 "Use this template" 버튼으로 새 프로젝트를 생성합니다.
+| 계층 | 기술 | 버전 |
+|------|------|------|
+| Frontend | Next.js (App Router), TypeScript | v16 |
+| 스타일링 | Tailwind CSS | v4 |
+| 애니메이션 | Motion (구 Framer Motion) | 최신 |
+| 3D 렌더링 | Three.js + React Three Fiber + @react-three/drei | 최신 |
+| Backend/DB | Supabase (PostgreSQL + pgvector) | supabase-js v2 |
+| 인증 | Supabase Auth (익명 + 이메일) | supabase-js v2 |
+| 임베딩 | OpenAI text-embedding-3-small (1536차원) | - |
+| 테스트 | Vitest | 최신 |
+| 배포 | Vercel (Frontend) + Supabase (Backend) | - |
+
+## 프로젝트 구조
+
+```
+src/
+├── domain/                    # 엔티티, 값 객체
+│   ├── entities/              # Message, Reaction, Epoch
+│   └── value-objects/         # GlobeCoordinate, Embedding
+├── application/               # 유스케이스, 인터페이스, DTO
+│   ├── interfaces/            # MessageRepository, EmbeddingService, PlacementService
+│   ├── use-cases/             # CreateMessage, GetMessages, PlaceNewMessage, ReactToMessage
+│   └── dto/                   # MessageDto, CreateMessageDto
+├── infrastructure/            # 인터페이스 구현
+│   ├── supabase/              # Supabase 클라이언트, 타입 정의
+│   ├── repositories/          # SupabaseMessageRepository
+│   ├── services/              # OpenAIEmbeddingService, CosineSimilarityPlacementService
+│   ├── security/              # Rate Limiting, JWT 인증 유틸리티
+│   └── di/                    # 의존성 주입 컨테이너
+└── presentation/              # UI 계층
+    ├── components/
+    │   ├── globe/             # Globe, MessageParticles, CameraControls, MessageCard, ClusterLabel
+    │   ├── ui/                # Minimap, RandomJump, MessageInput, NearZoomPanel
+    │   └── auth/              # AuthProvider, AuthModal
+    ├── hooks/                 # useZoomLevel, useGlobeMessages
+    ├── utils/                 # clusterMessages, messageInputHelpers
+    └── constants/             # globe.ts (상수)
+
+app/                           # Next.js App Router
+├── layout.tsx                 # AuthProvider 래핑
+├── page.tsx
+└── api/
+    ├── embed/route.ts         # 임베딩 변환 API
+    └── messages/
+        ├── route.ts           # 메시지 CRUD (POST 인증 필수)
+        └── [id]/
+            ├── route.ts       # 개별 메시지 조회
+            └── react/route.ts # 반응 추가 (인증 필수)
+
+supabase/migrations/           # DB 마이그레이션
+```
+
+## 인증 시스템
+
+익명성을 유지하면서 사용자 식별이 가능한 구조:
+
+- **자동 익명 로그인**: 첫 방문 시 `signInAnonymously()`로 자동 user_id 부여
+- **선택적 이메일 가입**: AuthModal에서 이메일/비밀번호로 계정 등록 가능
+- **중복 반응 방지**: 동일 사용자가 같은 메시지에 중복 공감 불가 (DB UNIQUE 제약)
+- **게시물 익명성**: 작성자 정보는 클라이언트에 노출하지 않음
+- **API 인증**: POST 요청에 `Authorization: Bearer <token>` 헤더 필수
+
+## 시작하기
+
+### 사전 요구사항
+
+- Node.js v20+
+- pnpm
+
+### 설치 및 실행
 
 ```bash
-# 생성된 프로젝트 클론
-git clone https://github.com/<your-username>/<new-project>.git
-cd <new-project>
-
-# 패키지 매니저 초기화
-pnpm init
+pnpm install
+pnpm dev
 ```
 
-## 템플릿 구조
+### 환경변수
+
+`.env.local` 파일을 생성하고 다음 변수를 설정:
 
 ```
-.
-├── CLAUDE.md                    # Claude Code 규칙 및 가이드라인
-├── README.md                    # 프로젝트 설명 (이 파일)
-├── .gitignore                   # Git 추적 제외 파일 목록
-├── .mcp.json                    # MCP 서버 설정
-├── create-worktree.sh           # Git Worktree 생성 스크립트
-└── .claude/
-    ├── settings.json            # Claude Code 프로젝트 공유 설정
-    ├── commands/                # 슬래시 커맨드
-    │   ├── branch-create.md     # 기능 브랜치 생성 + 개발 플랜 수립
-    │   ├── branch-apply.md      # 변경사항 정리 + PR 생성
-    │   ├── create-issue.md      # GitHub 이슈 생성
-    │   ├── resolve-issue.md     # GitHub 이슈 해결 계획
-    │   ├── feature-breakdown.md # 기능 분해
-    │   ├── context-save.md      # 작업 상태 저장
-    │   └── context-restore.md   # 작업 상태 복구
-    └── skills/                  # Claude Code 스킬
-        ├── cc-feature-implementer-main/  # 기능 계획 수립
-        ├── frontend-design/              # 프론트엔드 디자인
-        ├── security-audit/               # 보안 감사
-        └── docx/                         # 문서 생성/편집
+NEXT_PUBLIC_SUPABASE_URL=<supabase-url>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<supabase-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key>
+OPENAI_API_KEY=<openai-api-key>
 ```
 
-## 포함된 내용
-
-### CLAUDE.md
-
-Claude Code와 작업할 때 따라야 할 규칙을 정의합니다:
-
-- 한국어 사용, 이모지 금지, pnpm 패키지 매니저 사용
-- Git 워크플로우 (커밋 규칙, 브랜치 전략)
-- 보안 규칙 (민감 정보 관리)
-- TDD 사이클 및 테스트 작성 규칙
-- 클린 아키텍처 계층 구조 및 폴더 구조
-
-### MCP 서버 (.mcp.json)
-
-| 서버 | 용도 |
-|------|------|
-| shadcn | UI 컴포넌트 라이브러리 |
-| supabase | 백엔드/데이터베이스 |
-| playwright | 브라우저 자동화/테스트 |
-| context7 | 라이브러리 최신 문서 조회 |
-| stitch | GCP 연동 |
-| gsap-master | GSAP 애니메이션 |
-| spline-design | 3D 디자인 |
-| mcp-three | Three.js 3D 그래픽 |
-
-### 슬래시 커맨드
-
-| 커맨드 | 설명 |
-|--------|------|
-| `/branch-create` | 기능 브랜치 생성 + 개발 플랜 수립 |
-| `/branch-apply` | 변경사항 정리 + PR 생성 |
-| `/create-issue` | GitHub 이슈 생성 |
-| `/resolve-issue` | GitHub 이슈 해결 계획 |
-| `/feature-breakdown` | 기능 분해 |
-| `/context-save` | 작업 상태 저장 (context 클리어 전) |
-| `/context-restore` | 작업 상태 복구 |
-
-### 스킬
-
-| 스킬 | 설명 |
-|------|------|
-| Feature Planner | TDD 기반 기능 계획 수립 및 태스크 분해 |
-| Frontend Design | 프론트엔드 UI 디자인 및 컴포넌트 생성 |
-| Security Audit | 보안 취약점 검사 (Next.js, Supabase, AWS/Vercel 스택) |
-| DOCX | Word 문서 생성, 편집, 분석 |
-
-### 프로젝트 설정 (.claude/settings.json)
-
-- Agent Teams 실험 기능 활성화
-
-### Git Worktree 스크립트
-
-병렬 작업을 위한 worktree 생성 스크립트입니다.
+### 테스트
 
 ```bash
-source create-worktree.sh <worktree-name>
+pnpm test          # 전체 테스트 실행
+pnpm test:watch    # 감시 모드
 ```
 
-## 핵심 원칙
+### 빌드
 
-### TDD (Test-Driven Development)
-
-1. **Red**: 실패하는 테스트 작성
-2. **Green**: 테스트를 통과하는 최소한의 코드 작성
-3. **Refactor**: 코드 리팩토링 (테스트는 계속 통과해야 함)
-
-### 클린 아키텍처
-
-```
-Presentation -> Application -> Domain
-Infrastructure -> Application (인터페이스 구현)
+```bash
+pnpm build
 ```
 
-Domain 계층이 외부 계층에 의존하는 것은 금지합니다.
+## API 엔드포인트
 
-### 프로젝트 구조 예시
+| 메서드 | 경로 | 인증 | 설명 |
+|--------|------|------|------|
+| GET | /api/messages | 불필요 | 메시지 목록 조회 (좌표 범위 필터 옵션) |
+| POST | /api/messages | 필수 | 새 메시지 생성 (content -> embed -> place -> save) |
+| GET | /api/messages/[id] | 불필요 | 특정 메시지 조회 |
+| POST | /api/messages/[id]/react | 필수 | 메시지에 반응 추가 (중복 시 409) |
+| POST | /api/embed | 불필요 | 텍스트를 임베딩 벡터로 변환 |
 
-```
-project/
-├── src/
-│   ├── domain/               # 도메인 계층 (엔티티, 값 객체, 도메인 서비스)
-│   ├── application/          # 애플리케이션 계층 (유스케이스, 인터페이스, DTO)
-│   ├── infrastructure/       # 인프라 계층 (Repository 구현, API, DB)
-│   └── presentation/         # 프레젠테이션 계층 (컴포넌트, 페이지, 훅, 스토어)
-├── docs/plans/               # 기능 계획 문서
-├── __tests__/
-│   ├── integration/
-│   └── e2e/
-└── CLAUDE.md
-```
+## 디자인 사양
 
-## 사용 후 설정
+- 배경: #0A0A0F (딥 네이비)
+- 구체 표면: #1A1A2E (반투명, 와이어프레임 #2A2A4A)
+- 파티클 색상: 핑크 #EC4899, 민트 #34D399, 라벤더 #A78BFA, 화이트 #F4F4F5
+- 텍스트: #E4E4E7, 액센트: #6366F1
 
-템플릿으로 프로젝트를 생성한 후 다음을 확인하세요:
+## 줌 레벨 시스템
 
-1. **README.md** - 새 프로젝트에 맞게 수정
-2. **.mcp.json** - stitch 서버의 `STITCH_PROJECT_ID`를 실제 GCP 프로젝트 ID로 변경 (사용 시)
-3. **.claude/settings.local.json** - 로컬 permissions 설정 (커밋 대상 아님, 직접 생성 필요)
-4. **.gitignore** - 프로젝트에 맞게 추가 항목 설정
+| 레벨 | 카메라 거리 | 표시 내용 |
+|------|------------|-----------|
+| far | > 20 | 파티클만 (밀도 기반 히트맵) |
+| mid | 12 ~ 20 | 파티클 + 군집 라벨 |
+| near | < 12 | 개별 메시지 카드 |
