@@ -20,6 +20,7 @@ export default function MessageInput({ onSubmitSuccess }: MessageInputProps) {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
   const formControls = useAnimation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -38,8 +39,8 @@ export default function MessageInput({ onSubmitSuccess }: MessageInputProps) {
   // 제출 성공 시 축소 후 복귀 애니메이션
   const pulseForm = useCallback(async () => {
     await formControls.start({
-      scale: [1, 0.97, 1],
-      transition: { duration: 0.3 },
+      scale: [1, 0.97, 1.01, 1],
+      transition: { duration: 0.4, ease: "easeInOut" },
     });
   }, [formControls]);
 
@@ -94,25 +95,36 @@ export default function MessageInput({ onSubmitSuccess }: MessageInputProps) {
       // 등장 애니메이션: 아래에서 위로 슬라이드 + 페이드인
       initial={{ y: 40, opacity: 0 }}
       whileInView={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
       viewport={{ once: true }}
-      className="fixed bottom-6 left-1/2 z-20 flex w-full max-w-[480px] -translate-x-1/2 flex-col gap-3 rounded-2xl border border-white/15 bg-globe-surface/90 p-4 backdrop-blur-md"
+      className="fixed bottom-6 left-1/2 z-20 flex w-full max-w-[480px] -translate-x-1/2 flex-col gap-3 rounded-2xl border p-4 backdrop-blur-xl"
+      style={{
+        background: "rgba(16, 24, 48, 0.75)",
+        borderColor: isFocused
+          ? "rgba(124, 139, 245, 0.4)"
+          : "rgba(255, 255, 255, 0.1)",
+        boxShadow: isFocused
+          ? "0 0 30px rgba(124, 139, 245, 0.12), 0 8px 32px rgba(0, 0, 0, 0.3)"
+          : "0 8px 32px rgba(0, 0, 0, 0.2)",
+        transition: "border-color 0.3s, box-shadow 0.3s",
+      }}
     >
       {/* 텍스트 입력 영역 */}
       <textarea
         ref={textareaRef}
         value={content}
         onChange={(e) => {
-          // 최대 글자 수 제한
           if (e.target.value.length <= MAX_LENGTH) {
             setContent(e.target.value);
             setError(null);
           }
         }}
-        placeholder="메시지를 입력하세요..."
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        placeholder="지금 무슨 생각을 하고 있나요?"
         disabled={isSubmitting}
         rows={3}
-        className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-foreground placeholder-foreground/40 outline-none transition-colors focus:border-accent/50 disabled:opacity-50"
+        className="w-full resize-none rounded-xl border border-white/8 bg-white/5 px-4 py-3 text-sm text-foreground placeholder-foreground/35 outline-none transition-all duration-300 focus:border-accent/40 focus:bg-white/8 disabled:opacity-50"
       />
 
       {/* 하단: 글자 수 카운터 + 에러 + 제출 버튼 */}
@@ -120,12 +132,12 @@ export default function MessageInput({ onSubmitSuccess }: MessageInputProps) {
         <div className="flex flex-col gap-1">
           {/* 글자 수 카운터 */}
           <span
-            className={`text-xs ${
+            className={`text-xs transition-colors ${
               charCount >= MAX_LENGTH
                 ? "text-red-400"
                 : charCount >= MAX_LENGTH * 0.9
-                  ? "text-yellow-400"
-                  : "text-foreground/40"
+                  ? "text-amber-400"
+                  : "text-foreground/30"
             }`}
           >
             {charCount}/{MAX_LENGTH}
@@ -139,9 +151,19 @@ export default function MessageInput({ onSubmitSuccess }: MessageInputProps) {
         <button
           type="submit"
           disabled={isEmpty || isSubmitting}
-          className="rounded-xl bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/80 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-xl px-5 py-2 text-sm font-medium text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-30"
+          style={{
+            background:
+              isEmpty || isSubmitting
+                ? "rgba(124, 139, 245, 0.3)"
+                : "linear-gradient(135deg, #7C8BF5 0%, #A78BFA 100%)",
+            boxShadow:
+              isEmpty || isSubmitting
+                ? "none"
+                : "0 2px 12px rgba(124, 139, 245, 0.3)",
+          }}
         >
-          {isSubmitting ? "전송 중..." : "전송"}
+          {isSubmitting ? "전송 중..." : "이야기 남기기"}
         </button>
       </div>
     </motion.form>

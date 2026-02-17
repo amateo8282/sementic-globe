@@ -10,6 +10,7 @@ import Minimap from "@/presentation/components/ui/Minimap";
 import RandomJump from "@/presentation/components/ui/RandomJump";
 import MessageInput from "@/presentation/components/ui/MessageInput";
 import NearZoomPanel from "@/presentation/components/ui/NearZoomPanel";
+import Onboarding from "@/presentation/components/ui/Onboarding";
 import type { CameraTarget } from "./Globe";
 import type { MessageCardData } from "./MessageCard";
 import type { MinimapPoint } from "@/presentation/components/ui/Minimap";
@@ -68,20 +69,33 @@ export default function GlobeClient() {
 
   return (
     <>
+      {/* 온보딩 안내 (첫 방문 시 표시, 5초 후 자동 사라짐) */}
+      <Onboarding />
+
       {/* 우상단 프로필/로그인 버튼 */}
       <div className="fixed top-4 right-4 z-30">
         {!authLoading && (
           isAnonymous ? (
             <button
               onClick={() => setIsAuthModalOpen(true)}
-              className="rounded-lg border border-white/15 bg-globe-surface/80 px-3 py-1.5 text-xs text-foreground/60 backdrop-blur-md transition-colors hover:text-foreground hover:border-white/25"
+              className="rounded-lg border px-3 py-1.5 text-xs backdrop-blur-xl transition-all duration-200 hover:border-white/20"
+              style={{
+                background: "rgba(16, 24, 48, 0.6)",
+                borderColor: "rgba(255, 255, 255, 0.1)",
+                color: "rgba(232, 236, 244, 0.6)",
+              }}
             >
               로그인
             </button>
           ) : (
             <button
               onClick={signOut}
-              className="rounded-lg border border-white/15 bg-globe-surface/80 px-3 py-1.5 text-xs text-foreground/60 backdrop-blur-md transition-colors hover:text-foreground hover:border-white/25"
+              className="rounded-lg border px-3 py-1.5 text-xs backdrop-blur-xl transition-all duration-200 hover:border-white/20"
+              style={{
+                background: "rgba(16, 24, 48, 0.6)",
+                borderColor: "rgba(255, 255, 255, 0.1)",
+                color: "rgba(232, 236, 244, 0.6)",
+              }}
             >
               로그아웃
             </button>
@@ -108,9 +122,23 @@ export default function GlobeClient() {
       <Minimap points={minimapPoints} cameraDirection={cameraDirection} />
       <RandomJump onJump={handleRandomJump} />
       <MessageInput onSubmitSuccess={refetch} />
+
+      {/* 메시지 카운터 (좌상단) */}
+      {!isLoading && messages.length > 0 && (
+        <div
+          className="fixed top-4 left-4 z-10 text-xs"
+          style={{ color: "rgba(232, 236, 244, 0.3)" }}
+        >
+          {messages.length}개의 이야기가 모여 있습니다
+        </div>
+      )}
+
       {isLoading && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 text-foreground/50 text-sm">
-          메시지 로딩 중...
+        <div
+          className="fixed top-4 left-1/2 -translate-x-1/2 text-sm z-10"
+          style={{ color: "rgba(232, 236, 244, 0.4)" }}
+        >
+          이야기를 불러오는 중...
         </div>
       )}
     </>

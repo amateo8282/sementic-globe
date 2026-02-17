@@ -2,17 +2,19 @@
 
 import { useState, useCallback, useRef, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { MathUtils, Vector3 } from "three";
+import { Stars } from "@react-three/drei";
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import { MathUtils, Vector3, Group } from "three";
 import CameraControls from "./CameraControls";
 import MessageParticles, { type ParticleMessage } from "./MessageParticles";
 import type { MessageCardData } from "./MessageCard";
 import ClusterLabel, { type ClusterData } from "./ClusterLabel";
+import Atmosphere from "./Atmosphere";
 import { useZoomLevel } from "@/presentation/hooks/useZoomLevel";
 import {
   SCENE_BG,
   GLOBE_RADIUS,
   GLOBE_SURFACE,
-  GLOBE_WIREFRAME,
   CAMERA_INITIAL_Z,
   type ZoomLevel,
 } from "@/presentation/constants/globe";
@@ -40,30 +42,45 @@ interface GlobeProps {
   cameraTarget?: CameraTarget | null;
 }
 
-/** 반투명 구체 메시 + 와이어프레임 오버레이 */
+/**
+ * 숨 쉬는 듯한 구체 메시 + 대기 효과
+ * 와이어프레임을 제거하고 부드러운 표면 + Atmosphere glow를 적용
+ */
 function GlobeSphere() {
+  const groupRef = useRef<Group>(null);
+
+  // 구체가 미세하게 숨 쉬는 애니메이션 (4초 주기)
+  useFrame(({ clock }) => {
+    if (groupRef.current) {
+      const scale = 1 + Math.sin(clock.getElapsedTime() * 0.5) * 0.003;
+      groupRef.current.scale.setScalar(scale);
+    }
+  });
+
   return (
-    <group>
-      {/* 구체 표면 (반투명) */}
+    <group ref={groupRef}>
+      {/* 구체 표면 (부드러운 반투명) */}
       <mesh>
         <sphereGeometry args={[GLOBE_RADIUS, 64, 64]} />
         <meshStandardMaterial
           color={GLOBE_SURFACE}
           transparent
-          opacity={0.6}
-          roughness={0.8}
+          opacity={0.7}
+          roughness={0.9}
+          metalness={0.1}
         />
       </mesh>
-      {/* 와이어프레임 오버레이 */}
+      {/* 내부 발광 (은은한 코어 라이트) */}
       <mesh>
-        <sphereGeometry args={[GLOBE_RADIUS + 0.01, 32, 32]} />
+        <sphereGeometry args={[GLOBE_RADIUS * 0.98, 32, 32]} />
         <meshBasicMaterial
-          color={GLOBE_WIREFRAME}
-          wireframe
+          color="#1E3A5F"
           transparent
-          opacity={0.3}
+          opacity={0.15}
         />
       </mesh>
+      {/* 대기 효과 */}
+      <Atmosphere />
     </group>
   );
 }
@@ -109,13 +126,15 @@ function CameraAnimator({ target }: { target: CameraTarget | null }) {
   return null;
 }
 
-/** 장면 조명 설정 */
+/** 장면 조명 설정 (따뜻한 톤 추가) */
 function SceneLighting() {
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <pointLight position={[10, 10, 10]} intensity={0.8} />
-      <pointLight position={[-10, -10, -10]} intensity={0.3} />
+      <ambientLight intensity={0.3} color="#B8C4E0" />
+      <pointLight position={[10, 8, 10]} intensity={0.7} color="#E8DFCC" />
+      <pointLight position={[-10, -5, -10]} intensity={0.25} color="#6B8DD6" />
+      {/* 구체 뒤에서 비추는 역광 (림라이트 보강) */}
+      <pointLight position={[0, 0, -15]} intensity={0.15} color="#7C8BF5" />
     </>
   );
 }
@@ -126,7 +145,7 @@ const MAX_VISIBLE_CARDS = 15;
 /** 카메라 시야 내 카드 필터링 각도 (라디안) */
 const VIEW_ANGLE_THRESHOLD = Math.PI / 3; // 60도
 
-/** 구면 좌표 → 단위 벡터 변환 */
+/** 구면 좌표 -> 단위 벡터 변환 */
 function latLngToUnitVec(lat: number, lng: number, out: Vector3): Vector3 {
   const latRad = (lat * Math.PI) / 180;
   const lngRad = (lng * Math.PI) / 180;
@@ -283,6 +302,16 @@ export default function Globe({
         gl={{ antialias: true }}
       >
         <SceneLighting />
+        {/* 배경 별 (밤하늘 분위기) */}
+        <Stars
+          radius={80}
+          depth={60}
+          count={2500}
+          factor={3}
+          saturation={0.15}
+          fade
+          speed={0.3}
+        />
         <GlobeSphere />
         <ZoomContent
           messages={messages}
@@ -294,6 +323,15 @@ export default function Globe({
         />
         <CameraAnimator target={cameraTarget} />
         <CameraControls />
+        {/* Bloom 후처리: 발광 파티클에 빛번짐 효과 */}
+        <EffectComposer>
+          <Bloom
+            intensity={0.8}
+            luminanceThreshold={0.3}
+            luminanceSmoothing={0.9}
+            mipmapBlur
+          />
+        </EffectComposer>
       </Canvas>
     </div>
   );

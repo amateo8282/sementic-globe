@@ -24,8 +24,8 @@ interface MinimapProps {
   cameraDirection?: CameraDirection;
 }
 
-/** 클러스터별 색상 */
-const MINIMAP_COLORS = ["#EC4899", "#34D399", "#A78BFA", "#F4F4F5"];
+/** 클러스터별 색상 (globe 상수와 동기화) */
+const MINIMAP_COLORS = ["#F472B6", "#34D399", "#A78BFA", "#FCD34D"];
 
 /**
  * 정사영 투영으로 구면 좌표를 2D 원형 미니맵 좌표로 변환
@@ -91,7 +91,7 @@ export default function Minimap({
     // 원형 배경
     ctx.beginPath();
     ctx.arc(center, center, mapRadius, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(20, 20, 35, 0.75)";
+    ctx.fillStyle = "rgba(16, 24, 48, 0.7)";
     ctx.fill();
     ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
     ctx.lineWidth = 1;
